@@ -196,33 +196,26 @@ export default {
     async addTicker(tickerName) {
       tickerName = tickerName.toUpperCase();
       this.valid = this.validated(tickerName);
-      let ticker = {
-        name: tickerName,
-        price: await loadTicker(tickerName),
-        updating: true
-      }
-      if (ticker.price && !this.valid) {
-        this.tickers.push(ticker);
-        this.updatingTicker(ticker);
-        this.setLSDataTickers(this.tickers);
+      if (!this.valid) {
+        this.tickers = [...this.tickers, {name: tickerName}];
+        this.subscribeTickerPrice(this.tickers);
         this.tickerName = '';
       }
     },
-    updatingTicker(ticker) {
-      let current = this.tickers.find(t => t.name === ticker.name);
-      let update = setInterval(async () => {
-        if (current.updating) {
-          let price = await loadTicker(current.name);
-          current.price = price;
-          if (this.selectedTicker && this.selectedTicker.name === current.name) {
-            this.graph.push(price);
-          }
-        } else {
-          clearInterval(update);
-        }
+    subscribeTickerPrice(tickers) {
+      if(window.interval) {
+        clearInterval(window.interval)
+      }
+       window.interval = setInterval(async () => {
+         if(!tickers.length) {
+           clearInterval(window.interval)
+         }
+        const result = await loadTicker(tickers);
+        tickers.map(t => t.price = result[t.name]['USD']);
+        this.setLSDataTickers(tickers);
       }, 2000)
-    },
 
+    },
     validated(name) {
       name = name.toUpperCase();
       if (this.options.includes(name)) {
@@ -277,7 +270,7 @@ export default {
     slicedTickers() {
       let start = (this.page - 1) * this.ELEM_ON_PAGE;
       let end = (this.page * this.ELEM_ON_PAGE);
-      return [...this.filteredTickers].splice(start, end);
+      return [...this.filteredTickers].slice(start, end);
     },
     filteredTickers() {
       return this.tickers.filter(t => t.name.includes(this.filter.toUpperCase()));
@@ -296,11 +289,16 @@ export default {
     },
     filteredUniqOptions() {
       let names = this.tickers.map(t=> t.name);
-      return _.difference(this.filteredOptions, names).splice(0, 4);
+      return _.difference(this.filteredOptions, names).slice(0, 4);
     }
 
   },
   watch: {
+    slicedTickers(v) {
+      if(v.length === 0 && this.page > 1) {
+        this.page--
+      }
+    },
     tickerName(){
       this.valid = false
     },
@@ -317,6 +315,7 @@ export default {
   async created() {
     this.getURLParams()
     this.getLSDataTickers()
+    this.subscribeTickerPrice(this.tickers)
     await this.getListCoin()
   }
 }
