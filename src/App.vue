@@ -93,13 +93,14 @@
             :key="ticker.name"
             @click="selectedTicker = ticker"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
+            :class="{'border-4': selectedTicker=== ticker}"
         >
           <div class="px-4 py-5 sm:p-6 text-center">
             <dt class="text-sm font-medium text-gray-500 truncate">
               {{ ticker.name }} - USD
             </dt>
             <dd class="mt-1 text-3xl font-semibold text-gray-900">
-              {{ ticker.price }}
+              {{ ticker.price || '-' }}
             </dd>
           </div>
           <div class="w-full border-t border-gray-200"></div>
@@ -127,6 +128,7 @@
       <!--      -->
       <hr class="w-full border-t border-gray-600 my-4"/>
       <section
+          ref="graph"
           v-if="selectedTicker"
           class="relative"
       >
@@ -210,8 +212,13 @@ export default {
          if(!tickers.length) {
            clearInterval(window.interval)
          }
+         if(this.selectedTicker !== null) {
+           this.graph.push(this.selectedTicker.price)
+         }
         const result = await loadTicker(tickers);
-        tickers.map(t => t.price = result[t.name]['USD']);
+        tickers.map(t =>
+              result[t.name] ? t.price = result[t.name]['USD'].toFixed(1) : t.price = '-'
+        );
         this.setLSDataTickers(tickers);
       }, 2000)
 
@@ -259,8 +266,15 @@ export default {
     normalizeGraph() {
       let min = Math.min(...this.graph);
       let max = Math.max(...this.graph);
+      if(this.$refs.graph) {
+        let offWidth = this.$refs.graph.offsetWidth;
+        let lengthArr = this.graph.map(t => 20).reduce((acc, elem)=> acc + elem);
+        if(offWidth < lengthArr ){
+          this.graph.shift()
+        }
+      }
       return this.graph.map(price => {
-            if (max === min) {
+            if (price === min) {
               return 50
             }
             return (price - min) * 100 / (max - min)
