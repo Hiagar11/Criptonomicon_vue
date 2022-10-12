@@ -10,58 +10,10 @@
     </div>
     <div class="container">
       <section>
-        <div class="flex">
-          <div class="max-w-xs">
-            <label for="wallet" class="block text-sm font-medium text-gray-700"
-            >Тикер</label
-            >
-            <div class="mt-1 relative rounded-md shadow-md">
-              <input
-                  @keydown.enter="addTicker(tickerName)"
-                  v-model="tickerName"
-                  type="text"
-                  name="wallet"
-                  id="wallet"
-                  class="block p-2 w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
-                  placeholder="Например DOGE"
-              />
-            </div>
-            <div class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
-            <span
-                v-for="option of filteredUniqOptions"
-                :key="option"
-                @click="addTicker(option)"
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
-            {{ option }}
-            </span>
-
-            </div>
-            <div
-                v-if="valid"
-                class="text-sm text-red-600">{{valid}}
-            </div>
-          </div>
-        </div>
-        <button
-            @click="addTicker(tickerName)"
-            type="button"
-            class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-
-          <svg
-              class="-ml-0.5 mr-2 h-6 w-6"
-              xmlns="http://www.w3.org/2000/svg"
-              width="30"
-              height="30"
-              viewBox="0 0 24 24"
-              fill="#ffffff"
-          >
-            <path
-                d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-            ></path>
-          </svg>
-          Добавить
-        </button>
+        <add-ticker
+            @addTicker="addTicker"
+            :tickers="tickers"
+        />
         <div class="flex items-baseline">
           <label class="" for="filter">Фильтр:
             <input
@@ -85,15 +37,14 @@
           </button>
         </div>
       </section>
-      <!---->
       <hr class="w-full border-t border-gray-600 my-4"/>
       <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
         <div
-            v-for="(ticker, idx) of slicedTickers"
+            v-for="(ticker) of slicedTickers"
             :key="ticker.name"
             @click="selectedTicker = ticker"
-            class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
-            :class="{'border-4': selectedTicker=== ticker}"
+            class=" overflow-hidden shadow rounded-lg  border-purple-800 border-solid cursor-pointer"
+            :class="{'border-4': selectedTicker=== ticker, 'bg-red-100': ticker.blocked}"
         >
           <div class="px-4 py-5 sm:p-6 text-center">
             <dt class="text-sm font-medium text-gray-500 truncate">
@@ -105,7 +56,7 @@
           </div>
           <div class="w-full border-t border-gray-200"></div>
           <button
-              @click.stop="removeTicker(idx)"
+              @click.stop="removeTicker(ticker.name)"
               class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
           >
             <svg
@@ -125,50 +76,11 @@
           </button>
         </div>
       </dl>
-      <!--      -->
       <hr class="w-full border-t border-gray-600 my-4"/>
-      <section
-          ref="graph"
-          v-if="selectedTicker"
-          class="relative"
-      >
-        <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          {{ selectedTicker.name }} - USD
-        </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div
-              v-for="(col, ind) of normalizeGraph"
-              :key="ind"
-              class="bg-purple-800 border w-10"
-              :style="`height:${col}%`"
-          ></div>
-
-        </div>
-        <button
-            @click="selectedTicker = null"
-            type="button"
-            class="absolute top-0 right-0"
-        >
-          <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="30"
-              height="30"
-              x="0"
-              y="0"
-              viewBox="0 0 511.76 511.76"
-              style="enable-background:new 0 0 512 512"
-              xml:space="preserve"
-          >
-          <g>
-            <path
-                d="M436.896,74.869c-99.84-99.819-262.208-99.819-362.048,0c-99.797,99.819-99.797,262.229,0,362.048    c49.92,49.899,115.477,74.837,181.035,74.837s131.093-24.939,181.013-74.837C536.715,337.099,536.715,174.688,436.896,74.869z     M361.461,331.317c8.341,8.341,8.341,21.824,0,30.165c-4.16,4.16-9.621,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    l-75.413-75.435l-75.392,75.413c-4.181,4.16-9.643,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    c-8.341-8.341-8.341-21.845,0-30.165l75.392-75.413l-75.413-75.413c-8.341-8.341-8.341-21.845,0-30.165    c8.32-8.341,21.824-8.341,30.165,0l75.413,75.413l75.413-75.413c8.341-8.341,21.824-8.341,30.165,0    c8.341,8.32,8.341,21.824,0,30.165l-75.413,75.413L361.461,331.317z"
-                fill="#718096"
-                data-original="#000000"
-            ></path>
-          </g>
-        </svg>
-        </button>
-      </section>
+    <view-graph
+        :selectedTicker="selectedTicker"
+        :price="price"
+    />
     </div>
   </div>
 </template>
@@ -177,69 +89,54 @@
 
 </style>
 <script>
-import {loadList, loadTicker} from "@/api";
+import addTicker from "@/components/addTicker";
+import viewGraph from "@/components/graph";
+import {sharedWorker} from "@/api/ConnectToSharedWorker";
 
 export default {
   data() {
     return {
       tickers: [],
-      graph: [],
-      options: [],
+      price: 0,
 
       selectedTicker: null,
-      tickerName: '',
       filter: '',
       page: 1,
+
       ELEM_ON_PAGE: 6,
-      valid: false,
     }
   },
+  components: {
+    addTicker,
+    viewGraph,
+  },
   methods: {
-    async addTicker(tickerName) {
-      tickerName = tickerName.toUpperCase();
-      this.valid = this.validated(tickerName);
-      if (!this.valid) {
-        this.tickers = [...this.tickers, {name: tickerName}];
-        this.subscribeTickerPrice(this.tickers);
-        this.tickerName = '';
-      }
+    addTicker(tickerName) {
+      this.tickers = [...this.tickers, {name: tickerName}];
+      this.setLSDataTickers(this.tickers);
+      sharedWorker.port.postMessage({name: tickerName})
     },
-    subscribeTickerPrice(tickers) {
-      if(window.interval) {
-        clearInterval(window.interval)
-      }
-       window.interval = setInterval(async () => {
-         if(!tickers.length) {
-           clearInterval(window.interval)
-         }
-         if(this.selectedTicker !== null) {
-           this.graph.push(this.selectedTicker.price)
-         }
-        const result = await loadTicker(tickers);
-        tickers.map(t =>
-              result[t.name] ? t.price = result[t.name]['USD'].toFixed(1) : t.price = '-'
-        );
-        this.setLSDataTickers(tickers);
-      }, 2000)
-
-    },
-    validated(name) {
-      name = name.toUpperCase();
-      if (this.options.includes(name)) {
-        if(this.tickers.find(t => t.name === name)) {
-          return 'Данная пара уже записана'
-        } else {
-          return false
+    updatePrice(ticker, price) {
+      price = eval(price);
+      let tick = this.tickers.find(t => t.name === ticker);
+      if (tick) {
+        if (tick === this.selectedTicker) {
+          this.price = price;
         }
-      } else {
-        return 'Не найдена данная пара'
+        if (!price) {
+          tick.price = '-'
+          tick.blocked = true;
+        } else {
+          tick.price = price
+        }
       }
     },
-    removeTicker(index) {
-      this.tickers[index].updating = false;
-      if (this.selectedTicker && this.selectedTicker.name === this.tickers[index].name) {
+    removeTicker(name) {
+      if (this.selectedTicker && this.selectedTicker.name === name) {
         this.selectedTicker = null;
       }
+      sharedWorker.port.postMessage({name: name, remove: true})
+      let index = this.tickers.findIndex(t => t.name === name)
       this.tickers.splice(index, 1);
       this.setLSDataTickers(this.tickers);
     },
@@ -254,70 +151,37 @@ export default {
     setLSDataTickers(arr) {
       localStorage.setItem('tickers', JSON.stringify(arr));
     },
-    async getListCoin() {
-      this.options = JSON.parse(localStorage.getItem('options'));
-      if (!this.options) {
-        this.options = await loadList();
-        localStorage.setItem('options', JSON.stringify(this.options));
-      }
+    toSubscribe() {
+      this.tickers.forEach(t => {
+            sharedWorker.port.postMessage({name: t.name})
+          }
+      )
     },
   },
   computed: {
-    normalizeGraph() {
-      let min = Math.min(...this.graph);
-      let max = Math.max(...this.graph);
-      if(this.$refs.graph) {
-        let offWidth = this.$refs.graph.offsetWidth;
-        let lengthArr = this.graph.map(t => 20).reduce((acc, elem)=> acc + elem);
-        if(offWidth < lengthArr ){
-          this.graph.shift()
-        }
-      }
-      return this.graph.map(price => {
-            if (price === min) {
-              return 50
-            }
-            return (price - min) * 100 / (max - min)
-          }
-      );
-    },
-    slicedTickers() {
-      let start = (this.page - 1) * this.ELEM_ON_PAGE;
-      let end = (this.page * this.ELEM_ON_PAGE);
-      return [...this.filteredTickers].slice(start, end);
-    },
-    filteredTickers() {
-      return this.tickers.filter(t => t.name.includes(this.filter.toUpperCase()));
-    },
-    isNextPage() {
-      return this.filteredTickers.length > this.page * this.ELEM_ON_PAGE;
-    },
     params() {
       return {
         filter: this.filter,
         page: this.page
       }
     },
-    filteredOptions() {
-      return [...this.options].filter(o => o.startsWith(this.tickerName.toUpperCase()))
+    slicedTickers() {
+      let start = (this.page - 1) * this.ELEM_ON_PAGE;
+      let end = (this.page * this.ELEM_ON_PAGE);
+      return this.filteredTickers.slice(start, end);
     },
-    filteredUniqOptions() {
-      let names = this.tickers.map(t=> t.name);
-      return _.difference(this.filteredOptions, names).slice(0, 4);
-    }
-
+    filteredTickers() {
+      return this.tickers.filter(t => t.name.includes(this.filter.toUpperCase()))
+    },
+    isNextPage() {
+      return this.filteredTickers.length > this.page * this.ELEM_ON_PAGE;
+    },
   },
   watch: {
     slicedTickers(v) {
-      if(v.length === 0 && this.page > 1) {
+      if (v.length === 0 && this.page > 1) {
         this.page--
       }
-    },
-    tickerName(){
-      this.valid = false
-    },
-    selectedTicker() {
-      this.graph = [];
     },
     filter() {
       this.page = 1;
@@ -326,11 +190,20 @@ export default {
       window.history.pushState(null, document.title, window.location.pathname + `?filter=${v.filter}&page=${v.page}`)
     }
   },
-  async created() {
+  created() {
     this.getURLParams()
     this.getLSDataTickers()
-    this.subscribeTickerPrice(this.tickers)
-    await this.getListCoin()
-  }
+    sharedWorker.port.onmessage = (e) => {
+      if (e.data === 'opened') {
+        this.toSubscribe()
+      }
+      if (typeof e.data === 'object') {
+        let name = e.data.name;
+        let price = e.data.price;
+        this.updatePrice(name, price.toFixed(3))
+      }
+    }
+  },
+
 }
 </script>
